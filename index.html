@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Asignación SSRO</title>
+    <title>Verificar Asignación de Plaza</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
@@ -11,21 +11,21 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
     <script>
-        // ==========================================
         // PEGA AQUÍ TU ENLACE CSV DE GOOGLE SHEET
-        // ==========================================
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBRCZZzvXR7pjdVGPm_gFip-0zE24ySN7l5SN2HZH0QlT8iy-EhwiCUFIOU2z00JWG8z7Oj-ufoqd8/pub?output=csv"; 
         
-        // CONFIGURACIÓN DE COLUMNAS (Empezando desde 0)
-        // Ajusta estos números si cambias el orden en tu Excel
-        const COL_CI = 0;       // Columna A
-        const COL_NOMBRES = 1;  // Columna B
-        const COL_PATERNO = 2;  // Columna C
-        const COL_MATERNO = 3;  // Columna D
-        const COL_DESTINO = 4;  // Columna E
+        // Configuración de Columnas (Base 0)
+        // Estructura: CI, NOMBRES, APELLIDOS, RED, ESTABLECIMIENTO
+        const COL = {
+            CI: 0,
+            NOMBRES: 1,
+            APELLIDOS: 2,
+            RED: 3,
+            ESTABLECIMIENTO: 4
+        };
     </script>
 
     <div class="w-full max-w-md space-y-6">
@@ -34,61 +34,86 @@
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-900 text-white shadow-lg mb-2">
                 <i class="ph ph-hospital text-3xl"></i>
             </div>
-            <h1 class="text-2xl font-extrabold text-red-900 tracking-tight">Asignación SSSRO-SEDES LA PAZ</h1>
-            <p class="text-gray-500 text-sm">Consulta directa en tiempo real</p>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">SSSRO - SEDES LA PAZ</h1>
+            <p class="text-slate-500 text-sm">Ingrese su documento para ver su asignación</p>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl shadow-xl shadow-red-900/5 border border-white">
-            <form onsubmit="consultarCSV(event)" class="relative">
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 block">Cédula de Identidad</label>
+        <div class="bg-white p-6 rounded-2xl shadow-xl shadow-slate-200/50 border border-white">
+            <form onsubmit="consultarAsignacion(event)" class="relative">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Cédula de Identidad</label>
                 <div class="relative">
                     <i class="ph ph-identification-card absolute left-4 top-3.5 text-red-800 text-xl"></i>
                     <input type="number" id="ciInput" required placeholder="Ej: 4895623"
-                        class="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-lg font-bold text-gray-800 focus:ring-2 focus:ring-red-900 focus:border-transparent outline-none transition-all placeholder-gray-300">
+                        class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-red-900 focus:border-transparent outline-none transition-all placeholder-slate-300">
                 </div>
                 <button type="submit" id="btnConsultar"
                     class="mt-4 w-full bg-red-900 hover:bg-red-800 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-red-900/20 transition-all active:scale-95 flex justify-center items-center gap-2">
-                    <span>Consultar Ahora</span>
+                    <span>Consultar</span>
                     <i class="ph ph-magnifying-glass font-bold"></i>
                 </button>
             </form>
         </div>
 
         <div id="resultCard" class="hidden transform transition-all duration-500 translate-y-4 opacity-0">
-            <div class="bg-white rounded-2xl overflow-hidden shadow-2xl relative">
-                <div class="h-2 bg-gradient-to-r from-red-800 to-red-600"></div>
-                <div class="p-6 pb-8 text-center relative z-10">
+            <div class="bg-white rounded-2xl overflow-hidden shadow-2xl relative border-t-4 border-red-900">
+                
+                <div class="p-6 text-center relative z-10">
                     
-                    <div id="statusIconContainer" class="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg bg-gray-100"></div>
-
-                    <h2 id="resNombre" class="text-xl font-bold text-gray-800 leading-tight">---</h2>
-                    <p class="text-gray-400 text-sm mt-1 font-mono">CI: <span id="resCi">---</span></p>
-
-                    <div class="my-6 border-t-2 border-dashed border-gray-200 relative">
-                        <div class="absolute -left-8 -top-3 w-6 h-6 bg-gray-100 rounded-full"></div>
-                        <div class="absolute -right-8 -top-3 w-6 h-6 bg-gray-100 rounded-full"></div>
+                    <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-3 bg-green-100 text-green-600">
+                        <i class="ph ph-check-circle text-4xl"></i>
                     </div>
 
-                    <div class="space-y-1">
-                        <p class="text-xs uppercase font-bold text-gray-400 tracking-widest">Destino Asignado</p>
-                        <div id="resDestinoBox" class="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                            <p id="resDestino" class="text-lg font-bold text-gray-800">---</p>
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Personal Asignado</h2>
+                    <h3 id="resNombreCompleto" class="text-xl font-extrabold text-slate-800 leading-tight">---</h3>
+                    <p class="text-slate-500 text-sm mt-1 font-mono">CI: <span id="resCi">---</span></p>
+
+                    <div class="my-6 border-t border-slate-100"></div>
+
+                    <div class="space-y-4 text-left">
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="mt-1 bg-blue-50 p-2 rounded-lg text-blue-700">
+                                <i class="ph ph-network text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase">Red de Salud</p>
+                                <p id="resRed" class="font-bold text-slate-700">---</p>
+                            </div>
                         </div>
+
+                        <div class="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start gap-3">
+                            <div class="bg-white p-2 rounded-lg text-red-700 shadow-sm">
+                                <i class="ph ph-hospital text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-red-400 uppercase">Establecimiento Asignado</p>
+                                <p id="resEstablecimiento" class="text-lg font-bold text-red-900 leading-tight">---</p>
+                            </div>
+                        </div>
+
                     </div>
-                    <p class="text-xs text-gray-400 mt-6">SEDES LA PAZ - 2025</p>
+                </div>
+                
+                <div class="bg-slate-50 p-3 text-center border-t border-slate-100">
+                    <p class="text-xs text-slate-400">Verifique tambien en la pagina web</p>
                 </div>
             </div>
-            <button onclick="limpiar()" class="w-full text-center text-gray-500 text-sm mt-4 hover:text-red-800 font-medium">Nueva consulta</button>
+
+            <button onclick="limpiar()" class="w-full text-center text-slate-500 text-sm mt-6 hover:text-red-800 font-medium underline decoration-slate-300 underline-offset-4">
+                Realizar otra consulta
+            </button>
         </div>
 
-        <div id="errorMsg" class="hidden bg-red-50 text-red-800 p-4 rounded-xl text-center text-sm font-medium border border-red-100 flex flex-col items-center gap-2">
-            <i class="ph ph-warning-circle text-2xl"></i>
-            <span>No se encontró el carnet ingresado.</span>
+        <div id="errorMsg" class="hidden bg-amber-50 text-amber-800 p-6 rounded-xl text-center border border-amber-100 shadow-sm">
+            <i class="ph ph-warning-circle text-3xl mb-2 text-amber-600"></i>
+            <h3 class="font-bold text-lg">No encontrado</h3>
+            <p class="text-sm opacity-90 mt-1">El número de carnet ingresado no figura en la lista de personal asignado todavía.</p>
         </div>
+        
     </div>
 
     <script>
-        async function consultarCSV(e) {
+        async function consultarAsignacion(e) {
             e.preventDefault();
             const ciInput = document.getElementById('ciInput').value.trim();
             const btn = document.getElementById('btnConsultar');
@@ -99,70 +124,99 @@
             resultCard.classList.add('hidden', 'translate-y-4', 'opacity-0');
             errorMsg.classList.add('hidden');
 
-            if (!CSV_URL.includes("docs.google.com")) {
-                alert("Por favor configura la URL del CSV en el código.");
+            if (!CSV_URL || CSV_URL.includes("PEGAR_TU")) {
+                alert("⚠️ Error de configuración: Falta el enlace CSV en el código.");
                 return;
             }
 
+            // Estado de carga
             btn.disabled = true;
-            btn.innerHTML = `<i class="ph ph-spinner animate-spin text-xl"></i> Verificando...`;
+            btn.innerHTML = `<i class="ph ph-spinner animate-spin text-xl"></i> Buscando...`;
 
             try {
-                // 1. Descargar el CSV
+                // 1. Obtener CSV
                 const response = await fetch(CSV_URL);
+                if (!response.ok) throw new Error("Error red");
                 const text = await response.text();
 
-                // 2. Parsear CSV (Convertir texto a filas)
+                // 2. Procesar CSV
                 const filas = parseCSV(text);
                 
-                // 3. Buscar el CI (Saltamos la fila 0 que es cabecera)
+                // 3. Buscar
                 let encontrado = null;
 
+                // Empezamos en i=1 para saltar cabecera
                 for (let i = 1; i < filas.length; i++) {
-                    const columna = filas[i];
-                    // Verificamos que la fila tenga datos suficientes
-                    if (columna.length > COL_CI) {
-                        const ciEnFila = columna[COL_CI].replace(/['"]+/g, '').trim(); // Limpiar comillas si hay
+                    const row = filas[i];
+                    
+                    // Verificar que la fila tenga suficientes columnas
+                    if (row.length > COL.ESTABLECIMIENTO) {
+                        const rowCi = row[COL.CI].replace(/['"]+/g, '').trim();
                         
-                        if (ciEnFila === ciInput) {
+                        // Si el CI coincide Y tiene nombre asignado (no es una vacante vacía)
+                        if (rowCi === ciInput && row[COL.NOMBRES].trim() !== "") {
                             encontrado = {
-                                ci: ciEnFila,
-                                nombres: columna[COL_NOMBRES] || "",
-                                paterno: columna[COL_PATERNO] || "",
-                                materno: columna[COL_MATERNO] || "",
-                                destino: columna[COL_DESTINO] || ""
+                                ci: rowCi,
+                                nombres: row[COL.NOMBRES],
+                                apellidos: row[COL.APELLIDOS],
+                                red: row[COL.RED],
+                                establecimiento: row[COL.ESTABLECIMIENTO]
                             };
-                            break; // Detener bucle si encontramos
+                            break; 
                         }
                     }
                 }
 
                 if (encontrado) {
-                    mostrarResultado(encontrado);
+                    mostrarBoleta(encontrado);
                 } else {
                     errorMsg.classList.remove('hidden');
                 }
 
             } catch (error) {
-                console.error("Error CSV:", error);
-                alert("Error de conexión con la hoja de cálculo.");
+                console.error(error);
+                alert("Error al consultar la base de datos.");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<span>Consultar Ahora</span><i class="ph ph-magnifying-glass font-bold"></i>`;
+                btn.innerHTML = `<span>Consultar</span><i class="ph ph-magnifying-glass font-bold"></i>`;
             }
         }
 
-        // Función auxiliar para leer CSV correctamente
+        function mostrarBoleta(data) {
+            const card = document.getElementById('resultCard');
+            
+            // Limpiar datos (quitar comillas extra si las hubiera)
+            const clean = (str) => str.replace(/^"|"$/g, '').trim();
+
+            document.getElementById('resNombreCompleto').textContent = `${clean(data.nombres)} ${clean(data.apellidos)}`;
+            document.getElementById('resCi').textContent = clean(data.ci);
+            document.getElementById('resRed').textContent = clean(data.red);
+            document.getElementById('resEstablecimiento').textContent = clean(data.establecimiento);
+
+            // Animación de entrada
+            card.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('translate-y-4', 'opacity-0');
+            }, 50);
+        }
+
+        function limpiar() {
+            document.getElementById('ciInput').value = '';
+            document.getElementById('ciInput').focus();
+            document.getElementById('resultCard').classList.add('hidden', 'translate-y-4', 'opacity-0');
+            document.getElementById('errorMsg').classList.add('hidden');
+        }
+
+        // Parser CSV Robusto (Maneja comas dentro de comillas)
         function parseCSV(str) {
             const arr = [];
-            let quote = false;  // 'true' means we're inside a quoted field
-            let col, c;
+            let quote = false; 
+            let col = 0, row = 0;
 
-            // Recorrer caracter por caracter para manejar comas dentro de comillas (ej: "Perez, Juan")
-            for (let row = col = c = 0; c < str.length; c++) {
-                var cc = str[c], nc = str[c+1];        // current char, next char
-                arr[row] = arr[row] || [];             // create a new row if necessary
-                arr[row][col] = arr[row][col] || '';   // create a new column (start with empty string)
+            for (let c = 0; c < str.length; c++) {
+                let cc = str[c], nc = str[c+1];
+                arr[row] = arr[row] || [];
+                arr[row][col] = arr[row][col] || '';
 
                 if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; }
                 else if (cc == '"') { quote = !quote; }
@@ -172,44 +226,6 @@
                 else { arr[row][col] += cc; }
             }
             return arr;
-        }
-
-        function mostrarResultado(persona) {
-            const card = document.getElementById('resultCard');
-            const iconContainer = document.getElementById('statusIconContainer');
-            const destinoBox = document.getElementById('resDestinoBox');
-            
-            // Limpieza de comillas extras que a veces trae el CSV
-            const clean = (txt) => txt.replace(/^"|"$/g, '').trim();
-
-            document.getElementById('resNombre').textContent = `${clean(persona.nombres)} ${clean(persona.paterno)} ${clean(persona.materno)}`;
-            document.getElementById('resCi').textContent = clean(persona.ci);
-
-            const destino = clean(persona.destino);
-            const tieneDestino = destino !== "";
-
-            if (tieneDestino) {
-                iconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg bg-green-500 text-white";
-                iconContainer.innerHTML = '<i class="ph ph-check text-4xl font-bold"></i>';
-                document.getElementById('resDestino').textContent = destino;
-                document.getElementById('resDestino').className = "text-xl font-bold text-green-700";
-                destinoBox.className = "bg-green-50 rounded-xl p-4 border border-green-200 shadow-inner";
-            } else {
-                iconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg bg-amber-400 text-white";
-                iconContainer.innerHTML = '<i class="ph ph-clock text-4xl font-bold"></i>';
-                document.getElementById('resDestino').textContent = "PENDIENTE DE ASIGNACIÓN";
-                document.getElementById('resDestino').className = "text-lg font-bold text-amber-600";
-                destinoBox.className = "bg-amber-50 rounded-xl p-4 border border-amber-200 border-dashed";
-            }
-
-            card.classList.remove('hidden');
-            setTimeout(() => { card.classList.remove('translate-y-4', 'opacity-0'); }, 50);
-        }
-
-        function limpiar() {
-            document.getElementById('ciInput').value = '';
-            document.getElementById('ciInput').focus();
-            document.getElementById('resultCard').classList.add('hidden', 'translate-y-4', 'opacity-0');
         }
     </script>
 </body>
